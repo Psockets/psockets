@@ -1,0 +1,5 @@
+**/*.log
+**/*.swp
+**/*.dat
+.hhconfig
+*.pem
