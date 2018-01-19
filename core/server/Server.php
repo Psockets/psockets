@@ -115,7 +115,7 @@ class Server {
         $counter = 0;
 
         $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
-        while ($con->isValid() && $counter++ < 50) {
+        while ($con->isValid() && $counter++ < 3000) {
             if ($this->wrapper !== null) {
                 $this->wrapper->onConnect($con);
             }
