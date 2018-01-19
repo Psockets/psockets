@@ -1,10 +1,9 @@
 <?php
-$server_config =  array(
+$server_config = array(
     65000 => array(
         'WebSocket' => array(
             'hosts' => array(
                 'localhost' => array('WebChat', 'SimpleEcho'),
-                '*.ivo.com' => array('SimpleEcho')
             )
         ),
         'ssl' => array(
@@ -15,5 +14,17 @@ $server_config =  array(
     ),
     65001 => array(
         'RawTcp' => array()
+    ),
+    65002 => array(
+        'Http' => array(
+            'hosts' => array(
+                'localhost' => array('Status'),
+            )
+        ),
+        'ssl' => array(
+            'cert_file' => '',
+            'privkey_file' => '',
+            'passphrase' => ''
+        )
     )
 );

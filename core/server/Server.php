@@ -4,18 +4,6 @@ class ServerState {
     const RUNNING = 1;
 }
 
-class RuntimeStorage {
-    public static $data = array();
-
-    public static function set($k, $v) {
-        self::$data[$k] = $v;
-    }
-
-    public static function get($k) {
-        return self::$data[$k];
-    }
-}
-
 class Server {
     private $sock;
     private $errorcode = 0;
@@ -34,7 +22,7 @@ class Server {
     public $log;
 
     public function __construct($ip = '0.0.0.0', $port = 65000, $ssl = array()) {
-        $this->connections = new SplObjectStorage();
+        $this->connections = array();//new SplObjectStorage();
         $this->log = new FileLog();
         $this->ip = $ip;
         $this->port = $port;
@@ -67,6 +55,10 @@ class Server {
         $this->wrapper = new $wrapper($wrapper_config, $this);
         $this->wrapper->init();
         return $this;
+    }
+
+    public function getWrapper() {
+        return $this->wrapper;
     }
 
     public function isSSL() {
@@ -118,10 +110,12 @@ class Server {
     }
 
     public function loop() {
-        if ($this->state !== ServerState::RUNNING) return;
+        if ($this->state !== ServerState::RUNNING) return 0;
 
-        $con = new Connection(@stream_socket_accept($this->sock, 0), $this->wrapper);
-        if ($con->isValid()) {
+        $counter = 0;
+
+        $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
+        while ($con->isValid() && $counter++ < 50) {
             if ($this->wrapper !== null) {
                 $this->wrapper->onConnect($con);
             }
@@ -129,21 +123,21 @@ class Server {
             if ($this->isSSL()) {
                 if (!$con->enableSSL()) {
                     $this->log->error('Unable to create secure socket');
-                    return;
+                    return 0;
                 }
             }
 
-            //RuntimeStorage::set($con->id, $con);//TODO: fix this fucking issue!!!
-            $this->log->debug(date('[Y-m-d H:i:s]') . " Client connected from $con->ip");
+            $this->connections[$con->id] = $con;
+            //$this->log->debug(date('[Y-m-d H:i:s]') . " Client connected from $con->ip");
 
-            //$con = new Connection(@stream_socket_accept($this->sock, 0), $this->wrapper);
+            $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
         }
 
-        //$awaitables = Vector {};
         foreach ($this->connections as $con) {
             $con->listen();
         }
-        //await AwaitAllWaitHandle::fromVector($awaitables);
+
+        return $counter == 0 ? 0 : 1;
     }
 
     public function printUptime() {
@@ -157,7 +151,7 @@ class Server {
     }
 
     public function printStatus() {
-        $this->log->debug(sprintf("Currently active connections: %d", $this->connections->count()));
+        $this->log->debug(sprintf("Currently active connections: %d", count($this->connections)));
     }
 
     public function onDisconnect($con) {
@@ -179,6 +173,7 @@ class Server {
         foreach($this->connections as $con) {
             $con->close();
         }
+
         fclose($this->sock);
         $this->state = ServerState::STOPPED;
 

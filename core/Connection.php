@@ -5,6 +5,7 @@ class ConnectionState {
 }
 
 class Connection {
+    private $server;
     private $wrapper;
     private $state = ConnectionState::OPENED;
     private $buffer = "";
@@ -15,10 +16,11 @@ class Connection {
 
     protected $sock;
 
-    public function __construct($sock, $wrapper) {
+    public function __construct($sock, $server) {
         $this->sock = $sock;
         $this->id = ++self::$ai_count;//TODO: make sure this does not overlap with other connection ids
-        $this->wrapper = $wrapper;
+        $this->server = $server;
+        $this->wrapper = $server->getWrapper();
 
         if ($this->isValid()) {
             stream_set_blocking($sock, 0);
@@ -61,6 +63,8 @@ class Connection {
         if ($this->state == ConnectionState::CLOSED) return;
         fclose($this->sock);
         $this->state = ConnectionState::CLOSED;
+
+        $this->server->onDisconnect($this);
     }
 
     public function listen() {

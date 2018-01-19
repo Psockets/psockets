@@ -24,12 +24,17 @@ class ServerManager {
                 }
             }
 
+            $hasWork = 0;
+
             foreach ($this->servers as $server) {
                 if ($server->isRunning()) {
-                    $server->loop();
+                    $hasWork |= $server->loop();
                 }
             }
-            usleep(20000);
+
+            if (!$hasWork) {
+                usleep(200);
+            }
         }
     }
 
