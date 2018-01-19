@@ -10,6 +10,7 @@ class Server {
     private $errormsg = '';
     private $backlog = 100;
     private $connections;
+    private $connectionIds;
     private $startTime = 0;
     private $state = ServerState::STOPPED;
     private $wrapper;
@@ -22,7 +23,8 @@ class Server {
     public $log;
 
     public function __construct($ip = '0.0.0.0', $port = 65000, $ssl = array()) {
-        $this->connections = array();//new SplObjectStorage();
+        $this->connectionIds = array();
+        $this->connections = array();
         $this->log = new FileLog();
         $this->ip = $ip;
         $this->port = $port;
@@ -114,8 +116,10 @@ class Server {
 
         $counter = 0;
 
-        $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
-        while ($con->isValid() && $counter++ < 3000) {
+        $conSock = @stream_socket_accept($this->sock, 0);
+        while ($this->isValidSocket($conSock) && $counter++ < 3000) {
+            $con = new Connection($this);
+
             if ($this->wrapper !== null) {
                 $this->wrapper->onConnect($con);
             }
@@ -127,10 +131,11 @@ class Server {
                 }
             }
 
+            $this->connectionIds[$con->id] = $conSock;
             $this->connections[$con->id] = $con;
             //$this->log->debug(date('[Y-m-d H:i:s]') . " Client connected from $con->ip");
 
-            $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
+            $conSock = @stream_socket_accept($this->sock, 0);
         }
 
         foreach ($this->connections as $con) {
@@ -138,6 +143,66 @@ class Server {
         }
 
         return $counter == 0 ? 0 : 1;
+    }
+
+    public function isValidSocket($sock) {
+        return is_resource($sock);
+    }
+
+    public function isValidConnection($conId) {
+        return isset($this->connectionIds[$conId]) && is_resource($this->connectionIds[$conId]);
+    }
+
+    public function closeCon($conId) {
+        fclose($this->connectionIds[$conId]);
+    }
+
+    public function readCon($conId) {
+        $sock = $this->connectionIds[$conId];
+
+        if (feof($sock)) {
+            return FALSE;
+        }
+
+        if (is_resource($sock)) {
+            $read = array($sock);
+            $write = $except = null;
+
+            if (stream_select($read, $write, $except, 0, 10)) {
+                $data = fread($sock, 8192);
+
+                if (!empty($data)) {
+                    return $data;
+                } else {
+                    return '';
+                }
+            } else {
+                return NULL;
+            }
+        } else {
+            return FALSE;
+        }
+    }
+
+    public function writeCon($conId, $data) {
+        $sock = $this->connectionIds[$conId];
+        return fwrite($sock, $data);
+    }
+
+    public function enableTlsCon($conId) {
+        $sock = $this->connectionIds[$conId];
+        stream_set_blocking($sock, true);
+        if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_SERVER)) {
+            if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_SSLv3_SERVER)) {
+                if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_SSLv23_SERVER)) {
+                    if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_SSLv2_SERVER)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        stream_set_blocking($this->sock, false);
+        return true;
     }
 
     public function printUptime() {
@@ -157,6 +222,7 @@ class Server {
     public function onDisconnect($con) {
         if (isset($this->connections[$con->id])) {
             unset($this->connections[$con->id]);
+            unset($this->connectionIds[$con->id]);
         }
         //$this->log->debug("Client has disconnected");
     }

@@ -14,10 +14,7 @@ class Connection {
     public $id;
     public $ip = '';
 
-    protected $sock;
-
-    public function __construct($sock, $server) {
-        $this->sock = $sock;
+    public function __construct($server) {
         $this->id = ++self::$ai_count;//TODO: make sure this does not overlap with other connection ids
         $this->server = $server;
         $this->wrapper = $server->getWrapper();
@@ -29,39 +26,31 @@ class Connection {
     }
 
     public function enableSSL() {
-        stream_set_blocking($this->sock, true);
-        if (!stream_socket_enable_crypto($this->sock, true, STREAM_CRYPTO_METHOD_TLS_SERVER)) {
-            if (!stream_socket_enable_crypto($this->sock, true, STREAM_CRYPTO_METHOD_SSLv3_SERVER)) {
-                if (!stream_socket_enable_crypto($this->sock, true, STREAM_CRYPTO_METHOD_SSLv23_SERVER)) {
-                    if (!stream_socket_enable_crypto($this->sock, true, STREAM_CRYPTO_METHOD_SSLv2_SERVER)) {
-                        $this->close();
-                        return false;
-                    }
-                }
-            }
+        if (!$this->server->enableTlsCon($this->id)) {
+            $this->close();
         }
-        stream_set_blocking($this->sock, false);
-        return true;
     }
 
     public function isValid() {
-        return is_resource($this->sock);
+        return $this->server->isValidConnection($this->id);
     }
 
-    public function getResource() {
-        return $this->sock;
+    public function getState() {
+        return $this->state;
     }
 
     public function send($data) {
         if ($this->state == ConnectionState::CLOSED) return;
-        fwrite($this->sock, $data);
+        $this->server->writeCon($this->id, $data);
         //TODO: Split these into small chunks that can be sent fast
         //Maybe even implement a job queue, also make this function async
     }
 
     public function close() {
         if ($this->state == ConnectionState::CLOSED) return;
-        fclose($this->sock);
+
+        $this->server->closeCon($this->id);
+
         $this->state = ConnectionState::CLOSED;
 
         $this->server->onDisconnect($this);
@@ -70,27 +59,20 @@ class Connection {
     public function listen() {
         if ($this->state !== ConnectionState::OPENED) return;
 
-        if (feof($this->sock)) {
-            $this->close();
+        $data = $this->server->readCon($this->id);
+
+        if ($data === FALSE) {
+            $this->server->closeCon($this->id);
             if ($this->wrapper !== null) {
                 $this->wrapper->onDisconnect($this);
             }
-        }
-
-        if (is_resource($this->sock)) {
-            $read = array($this->sock);
-            $write = $except = null;
-
-            if (stream_select($read, $write, $except, 0, 10)) {
-                $data = fread($this->sock, 8192);
-
-                if (!empty($data)) {
-                    $this->buffer .= $data;
-                }
-            } else if ($this->buffer != "" && $this->wrapper !== null) {
+        } else if ($data === NULL) {
+            if ($this->buffer != "" && $this->wrapper !== null) {
                 $this->wrapper->onData($this, $this->buffer);
                 $this->buffer = "";
             }
+        } else if ($data !== '') {
+            $this->buffer .= $data;
         }
     }
 }
