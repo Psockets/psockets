@@ -158,7 +158,7 @@ class Server {
         if (isset($this->connections[$con->id])) {
             unset($this->connections[$con->id]);
         }
-        $this->log->debug("Client has disconnected");
+        //$this->log->debug("Client has disconnected");
     }
 
     public function stop() {

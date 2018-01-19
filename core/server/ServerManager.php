@@ -33,7 +33,7 @@ class ServerManager {
             }
 
             if (!$hasWork) {
-                usleep(200);
+                usleep(500);
             }
         }
     }
