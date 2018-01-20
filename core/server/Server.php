@@ -24,7 +24,7 @@ class Server {
 
     public function __construct($ip = '0.0.0.0', $port = 65000, $ssl = array()) {
         $this->connectionIds = array();
-        $this->connections = array();
+        $this->connections = array();//new ThreadedConnectionStorage();
         $this->log = new FileLog();
         $this->ip = $ip;
         $this->port = $port;
@@ -131,6 +131,8 @@ class Server {
                 }
             }
 
+            stream_set_blocking($conSock, 0);
+
             $this->connectionIds[$con->id] = $conSock;
             $this->connections[$con->id] = $con;
             //$this->log->debug(date('[Y-m-d H:i:s]') . " Client connected from $con->ip");
@@ -138,6 +140,7 @@ class Server {
             $conSock = @stream_socket_accept($this->sock, 0);
         }
 
+        //$this->connections->listen();
         foreach ($this->connections as $con) {
             $con->listen();
         }
@@ -203,6 +206,11 @@ class Server {
         }
         stream_set_blocking($this->sock, false);
         return true;
+    }
+
+    public function getConIp($conId) {
+        $sock = $this->connectionIds[$conId];
+        return stream_socket_get_name($sock, true);
     }
 
     public function printUptime() {

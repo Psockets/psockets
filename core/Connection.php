@@ -20,8 +20,7 @@ class Connection {
         $this->wrapper = $server->getWrapper();
 
         if ($this->isValid()) {
-            stream_set_blocking($sock, 0);
-            $this->ip = stream_socket_get_name($sock, true);
+            $this->ip = $this->server->getConIp($this->id);
         }
     }
 
