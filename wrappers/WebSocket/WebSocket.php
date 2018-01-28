@@ -1,9 +1,19 @@
 <?php
 class WebSocket extends Wrapper {
     private $ws_guid = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-    private $components = array();
-    private $hosts = array();
-    private $clients = array();
+    private $components;
+    private $hosts;
+    private $clients;
+    private $buffers;
+
+    public function __construct($config, $server) {
+        parent::__construct($config, $server);
+
+        $this->components = array();
+        $this->hosts = array();
+        $this->clients = array();
+        $this->buffers = array();
+    }
 
     public function init() {
         $hosts = !empty($this->config['hosts']) ? $this->config['hosts'] : array();
@@ -32,19 +42,26 @@ class WebSocket extends Wrapper {
     }
 
     public function onConnect($con) {
+        $this->server->log->debug("New WebSocket connection");
         $this->clients[$con->id] = new WebSockConnection($con);
+        $this->buffers[$con->id] = "";
     }
 
     public function onData($con, $data) {
+        $this->buffers[$con->id] .= $data;
+        $buffer = $this->buffers[$con->id];
+
         if (isset($this->clients[$con->id])){
             $websock_con = $this->clients[$con->id];
         }
 
         if ($websock_con !== null) {
             if (!$websock_con->isAuthorized()) {
-                $this->authClient($websock_con, $data);
+                if (strpos($buffer, "\r\n\r\n")) {
+                    $this->authClient($websock_con, $buffer);
+                }
             } else {
-                $this->processData($websock_con, $data);
+                $this->processData($websock_con, $buffer);
             }
         }
     }
@@ -61,7 +78,10 @@ class WebSocket extends Wrapper {
                 }
             }
 
-            if (isset($this->clients[$con->id])) unset($this->clients[$con->id]);
+            unset($this->clients[$con->id]);
+            unset($this->buffers[$con->id]);
+
+            $this->server->log->debug("WebSocket disconnect");
         }
     }
 
@@ -206,7 +226,7 @@ class WebSocket extends Wrapper {
         $frame = new RecvFrame($data);
         if (!$frame->isValid()) return;
 
-        if ($frame->RSV1 || $frame->RSV2 || $frame->RSV3) {
+        if ($frame->RSV1 || $frame->RSV2 || $frame->RSV3) {//We do not support extensions yet, so if any of these is present we should close the connection because the client (Google Chrome!) is misbehaving and using extensions regardless.
             $con->close();
             return;
         }
