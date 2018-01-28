@@ -137,6 +137,14 @@ class Server {
             $con->listen();
         }
 
+        foreach ($this->connections as $con) {
+            try {
+                $con->flush();
+            } catch (SocketWriteException $e) {
+                //TODO: Do some sort of logging
+            }
+        }
+
         return $counter == 0 ? 0 : 1;
     }
 
