@@ -21,13 +21,14 @@ function system_autoload($className) {
     $sub_dir = implode(DS, $parts) . DS;
 
     $incl_dirs = array(
+        'app' => DIR_APP,
         'core' => DIR_CORE,
         'core_server' => DIR_CORE_SERVER,
         'wrappers' => DIR_WRAPPERS
     );
 
     foreach ($incl_dirs as $key => $dir) {
-        if ($key == 'wrappers') {
+        if (in_array($key, array('wrappers', 'app'))) {
             dir_search_recursive($dir, $className . '.php');
         } else {
             $filename = $dir . $className . '.php';

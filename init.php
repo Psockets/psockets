@@ -1,6 +1,7 @@
 <?php
 define('DS', DIRECTORY_SEPARATOR);
-define('DIR_ROOT', dirname(__FILE__).DS);
+define('DIR_ROOT', dirname(__FILE__) . DS);
+define('DIR_APP', DIR_ROOT . 'app' . DS);
 define('DIR_CORE', DIR_ROOT . 'core' . DS);
 define('DIR_CORE_SERVER', DIR_ROOT . 'core' . DS . 'server' . DS);
 define('DIR_WRAPPERS', DIR_ROOT . 'wrappers' . DS);
