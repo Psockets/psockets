@@ -76,19 +76,19 @@ class Http extends Wrapper {
 
     private function getResponse($version, $resp) {
         $contentLength = strlen($resp);
-        return "HTTP/$version 200 OK\r\nContent-Length: $contentLength\r\n\r\n$resp";
+        return "HTTP/$version 200 OK\r\nServer: psockets\r\nContent-Length: $contentLength\r\n\r\n$resp";
     }
 
     private function getHardcodedReponse200($version) {
-        return "HTTP/$version 200 OK\r\nContent-Length: 2\r\n\r\nHi";
+        return "HTTP/$version 200 OK\r\nServer: psockets\r\nContent-Length: 2\r\n\r\nHi";
     }
 
     private function getHardcodedError500($version) {
-        return "HTTP/$version 500 Internal Server Error\r\nContent-Length: 5\r\n\r\nOops!";
+        return "HTTP/$version 500 Internal Server Error\r\nServer: psockets\r\nContent-Length: 5\r\n\r\nOops!";
     }
 
     private function getHardcodedError501($version) {
-        return "HTTP/$version 501 Not Implemented\r\nContent-Length: 5\r\n\r\nOops!";
+        return "HTTP/$version 501 Not Implemented\r\nServer: psockets\r\nContent-Length: 5\r\n\r\nOops!";
     }
 
     private function processRequest($httpVersion, $method, $path, $query, $headers) {
