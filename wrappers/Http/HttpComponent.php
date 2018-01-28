@@ -8,9 +8,9 @@ abstract class HttpComponent {
     }
 
     public function onLoad($ip, $port, $host) {}
-    public function onConnect($con) {}
-    public function onDisconnect($con) {}
-    public function onStop() {}
+    //public function onConnect($con) {}
+    //public function onDisconnect($con) {}
+    //public function onStop() {}
 
     abstract public function onRequest($con, $request);
 }

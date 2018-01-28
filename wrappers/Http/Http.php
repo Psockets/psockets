@@ -77,23 +77,46 @@ class Http extends Wrapper {
                     }
                 }
 
-                $headers = array();
+                $host = 'localhost';
+                $headers = $cookies = array();
                 foreach ($lines as $line) {
                     $parts = explode(':', $line);
                     $header = strtolower(array_shift($parts));
                     $value = trim(implode(':', $parts));
                     $headers[$header] = $value;
+
+                    if ($header == 'cookie') {
+                        $parts = explode("; ", $value);
+
+                        foreach ($parts as $part) {
+                            $cookieParts = explode("=", $part);
+                            $cookieName = array_shift($cookieParts);
+                            $cookieVal = implode("=", $cookieParts);
+                            $cookies[$cookieName] = $cookieVal;
+                        }
+                    } else if ($header == 'host') {
+                        $value = current(explode(':', $value));
+                        if ($value == '127.0.0.1') {
+                            $value = 'localhost';
+                        }
+
+                        $host = $value;
+                    }
                 }
 
-                $resp = $this->processRequest($version, $method, $path, $query, $headers);
-
-                if ($resp) {
-                    $con->send($resp);
-                } else {
-                    $con->send($this->getHardcodedError500($version));
+                $req = new HttpRequest($method, $headers, $path, $query, $cookies);
+                if (isset($this->hosts[$host])) {
+                    $this->hosts[$host]->onRequest($con, $req);
                 }
+                //$resp = $this->processRequest($version, $method, $path, $query, $headers);
 
-                $con->close();
+                //if ($resp) {
+                //    $con->send($resp);
+                //} else {
+                //    $con->send($this->getHardcodedError500($version));
+                //}
+
+                //$con->close();
             }
         } else {
             $this->buffers[$con->id] = $buffer;
