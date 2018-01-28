@@ -1,5 +1,5 @@
 <?php
-class WebChat extends Component {
+class WebChat extends WebSocketComponent {
     public static $PROTOCOL = "webchat";
 
     private $clients = array();

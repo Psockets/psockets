@@ -18,7 +18,7 @@ $server_config = array(
     65002 => array(
         'Http' => array(
             'hosts' => array(
-                'localhost' => array('Status'),
+                'localhost' => array('HelloWorld'),
             )
         ),
         'ssl' => array(

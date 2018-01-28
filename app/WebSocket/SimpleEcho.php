@@ -1,5 +1,5 @@
 <?php
-class SimpleEcho extends Component {
+class SimpleEcho extends WebSocketComponent {
     public static $PROTOCOL = "echo";
 
     public function onLoad($ip, $port, $host) {

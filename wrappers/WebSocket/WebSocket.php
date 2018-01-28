@@ -29,7 +29,7 @@ class WebSocket extends Wrapper {
 
     public function loadComponent($component, $host) {
         $c = new $component($this->server);
-        if ($c instanceof Component && !empty($c::$PROTOCOL)) {
+        if ($c instanceof WebSocketComponent && !empty($c::$PROTOCOL)) {
             if ($this->server !== null) {
                 $c->onLoad($this->server->ip, $this->server->port, $host);
             }

@@ -1,10 +1,38 @@
 <?php
 
 class Http extends Wrapper {
+    private $hosts;
     private $buffers;
+    private $components;
 
     public function init() {
+        $this->hosts = array();
         $this->buffers = array();
+        $this->components = array();
+
+        $hosts = !empty($this->config['hosts']) ? $this->config['hosts'] : array();
+
+        if ($hosts !== null) {
+            foreach($hosts as $host => $components) {
+                foreach ($components as $component) {
+                    $this->hosts[$host] = $this->loadComponent($component, $host);
+                }
+            }
+        }
+    }
+
+    public function loadComponent($component, $host) {
+        $c = new $component($this->server);
+        if ($c instanceof HttpComponent && !empty($c::$PATH)) {
+            if ($this->server !== null) {
+                $c->onLoad($this->server->ip, $this->server->port, $host);
+            }
+            $this->components[$c::$PATH] = $c;
+            return $c;
+        } else {
+            $this->log->error("Failed to load component $component. It does not implement the Component interface.");
+        }
+        return null;
     }
 
     public function onConnect($con) {

@@ -1,5 +1,5 @@
 <?php
-abstract class Component {
+abstract class WebSocketComponent {
     public static $PROTOCOL = '';
     protected $server;
 
