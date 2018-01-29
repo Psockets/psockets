@@ -1,18 +1,20 @@
 <?php
 
 class HttpResponse {
-    public $version;
-    public $body;
+    private $httpVersion;
+    private $body;
+    private $request;
 
-    public function __construct($body) {
+    public function __construct($request, $body) {
+        $this->request = $request;
         $this->body = $body;
-        $this->version = '1.1';
+        $this->httpVersion = $request->getHttpVersion();;
     }
 
     public function __toString() {
         $contentLength = strlen($this->body);
         $headers = array(
-            "HTTP/$this->version 200 OK",
+            "HTTP/$this->httpVersion 200 OK",
             "Server: psockets",
             "Content-Length: $contentLength"
         );

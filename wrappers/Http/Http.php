@@ -1,22 +1,29 @@
 <?php
 
 class Http extends Wrapper {
-    private $hosts;
     private $buffers;
     private $components;
+    private $paths;
+    private $allowed_methods = array('GET');
 
     public function init() {
-        $this->hosts = array();
         $this->buffers = array();
         $this->components = array();
+        $this->paths = array();
 
         $hosts = !empty($this->config['hosts']) ? $this->config['hosts'] : array();
 
         if ($hosts !== null) {
             foreach($hosts as $host => $components) {
+                $this->components[$host] = array();
+                $this->paths[$host] = array();
                 foreach ($components as $component) {
-                    $this->hosts[$host] = $this->loadComponent($component, $host);
+                    $this->loadComponent($component, $host);
                 }
+
+                usort($this->paths[$host], function($a, $b) {
+                        return strlen($b) <=> strlen($a);
+                });
             }
         }
     }
@@ -24,11 +31,17 @@ class Http extends Wrapper {
     public function loadComponent($component, $host) {
         $c = new $component($this->server);
         if ($c instanceof HttpComponent && !empty($c::$PATH)) {
-            if ($this->server !== null) {
-                $c->onLoad($this->server->ip, $this->server->port, $host);
+            if (!isset($this->components[$host][$c::$PATH])) {
+                if ($this->server !== null) {
+                    $c->onLoad($this->server->ip, $this->server->port, $host);
+                }
+                $this->components[$host][$c::$PATH] = $c;
+                $this->paths[$host][] = $c::$PATH;
+            } else {
+                $errMsg = "Duplicate HttpComponent path: " . $component . " and " . get_class($this->components[$host][$c::$PATH]) . " define the same path - " . $c::$PATH;
+                $this->log->error($errMsg);
+                throw new RuntimeException($errMsg);
             }
-            $this->components[$c::$PATH] = $c;
-            return $c;
         } else {
             $this->log->error("Failed to load component $component. It does not implement the Component interface.");
         }
@@ -57,12 +70,11 @@ class Http extends Wrapper {
 
             if (preg_match('/^(\w+)\s(.*?)\sHTTP\/([\d\.]+)$/', $requestLine, $matches)) {
                 array_shift($matches);
-                list($method, $target, $version) = $matches;
+                list($method, $target, $httpVersion) = $matches;
                 $method = strtoupper($method);
-                $allowed_methods = array('GET');
 
-                if (!in_array($method, $allowed_methods)) {
-                    $con->send($this->getHardcodedError501($version));
+                if (!in_array($method, $this->allowed_methods)) {
+                    $con->send($this->getHardcodedError501($httpVersion));
                     return;
                 }
 
@@ -104,19 +116,27 @@ class Http extends Wrapper {
                     }
                 }
 
-                $req = new HttpRequest($method, $headers, $path, $query, $cookies);
-                if (isset($this->hosts[$host])) {
-                    $this->hosts[$host]->onRequest($con, $req);
+                if (isset($this->paths[$host])) {
+                    $pathMatch = "";
+                    foreach ($this->paths[$host] as $componentPath) {
+                        if (strpos($path, $componentPath) === 0) {
+                            $pathMatch = $componentPath;
+                            break;
+                        }
+                    }
+
+                    if ($pathMatch) {
+                        $req = new HttpRequest($httpVersion, $method, $headers, $path, $query, $cookies);
+                        if ($this->components[$host][$pathMatch]->onRequest($con, $req)) {
+                            return;
+                        }
+                    }
                 }
-                //$resp = $this->processRequest($version, $method, $path, $query, $headers);
 
-                //if ($resp) {
-                //    $con->send($resp);
-                //} else {
-                //    $con->send($this->getHardcodedError500($version));
-                //}
-
-                //$con->close();
+                $con->send($this->getHardcodedError404($httpVersion));
+                $con->close();
+            } else {
+                $con->close();
             }
         } else {
             $this->buffers[$con->id] = $buffer;
@@ -136,6 +156,10 @@ class Http extends Wrapper {
 
     private function getHardcodedError500($version) {
         return "HTTP/$version 500 Internal Server Error\r\nServer: psockets\r\nContent-Length: 5\r\n\r\nOops!";
+    }
+
+    private function getHardcodedError404($version) {
+        return "HTTP/$version 404 Not Found\r\nServer: psockets\r\nContent-Length: 19\r\n\r\n<h1>Not Found!</h1>";
     }
 
     private function getHardcodedError501($version) {
