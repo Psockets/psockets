@@ -77,7 +77,7 @@ class Connection {
             }
         }
         
-        if ($this->state == ConnectionState::CLOSING) {
+        if ($this->state == ConnectionState::CLOSING && strlen($this->outboundBuffer) === 0) {
             fclose($this->sock);
             $this->state = ConnectionState::CLOSED;
             $this->server->onDisconnect($this);
