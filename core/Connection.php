@@ -69,7 +69,7 @@ class Connection {
         if ($this->state == ConnectionState::CLOSED) return;
 
         if (strlen($this->outboundBuffer) > 0) {
-            $written = fwrite($this->sock, $this->outboundBuffer, Connection::WRITE_LENGTH);
+            $written = @fwrite($this->sock, $this->outboundBuffer, Connection::WRITE_LENGTH);
             if ($written === false) {
                 throw new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
             } else if ($written > 0) {
