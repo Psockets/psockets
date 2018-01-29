@@ -108,7 +108,7 @@ class Connection {
             $read = array($this->sock);
             $write = $except = null;
 
-            if (stream_select($read, $write, $except, 0, 10)) {
+            if (stream_select($read, $write, $except, 0, 0)) {
                 $data = fread($this->sock, Connection::READ_LENGTH);
 
                 if (!empty($data)) {
