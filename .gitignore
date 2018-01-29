@@ -3,3 +3,4 @@
 **/*.dat
 .hhconfig
 *.pem
+config_local.php
