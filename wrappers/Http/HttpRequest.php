@@ -1,13 +1,13 @@
 <?php
 
 class HttpRequest {
-    public $httpVersion;
-    public $method;
-    public $headers;
-    public $path;
-    public $query;
-    public $cookies;
-    public $payload;// for post requests
+    private $httpVersion;
+    private $method;
+    private $headers;
+    private $path;
+    private $query;
+    private $cookies;
+    private $payload;// for post requests
 
     public function __construct($httpVersion = '1.0', $method = "GET", $headers = array(), $path = "/", $query = array(), $cookies = array(), $payload = "") {
         $this->httpVersion = $httpVersion;
