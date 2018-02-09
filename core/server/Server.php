@@ -145,7 +145,16 @@ class Server {
             }
         }
 
-        return $counter == 0 ? 0 : 1;
+        $hasWork = false;
+
+        foreach ($this->connections as $con) {
+            if ($con->hasWork()) {
+                $hasWork = true;
+                break;
+            }
+        }
+
+        return $hasWork || $counter > 0 ? 1 : 0;
     }
 
     public function printUptime() {

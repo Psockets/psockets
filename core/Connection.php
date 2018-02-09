@@ -14,6 +14,8 @@ class Connection {
     private $state;
     private $inboundBuffer;
     private $outboundBuffer;
+    private $lastRead;
+    private $lastWrite;
 
     public static $ai_count = 0;
     public $id;
@@ -29,11 +31,17 @@ class Connection {
         $this->state = ConnectionState::OPENED;
         $this->inboundBuffer = "";
         $this->outboundBuffer = "";
+        $this->lastRead = 0;
+        $this->lastWrite = 0;
 
         if ($this->isValid()) {
             stream_set_blocking($sock, 0);
             $this->ip = stream_socket_get_name($sock, true);
         }
+    }
+
+    public function hasWork() {
+        return $this->lastRead < 3 || $this->lastWrite < 3;
     }
 
     public function enableSSL() {
@@ -69,12 +77,15 @@ class Connection {
         if ($this->state == ConnectionState::CLOSED) return;
 
         if (strlen($this->outboundBuffer) > 0) {
+            $this->lastWrite = 0;
             $written = @fwrite($this->sock, $this->outboundBuffer, Connection::WRITE_LENGTH);
             if ($written === false) {
                 throw new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
             } else if ($written > 0) {
                 $this->outboundBuffer = substr($this->outboundBuffer, $written);
             }
+        } else {
+            $this->lastWrite++;
         }
         
         if ($this->state == ConnectionState::CLOSING && strlen($this->outboundBuffer) === 0) {
@@ -109,12 +120,14 @@ class Connection {
             $write = $except = null;
 
             if (stream_select($read, $write, $except, 0, 0)) {
+                $this->lastRead = 0;
                 $data = fread($this->sock, Connection::READ_LENGTH);
 
                 if (!empty($data)) {
                     $this->inboundBuffer .= $data;
                 }
             } else if ($this->inboundBuffer != "" && $this->wrapper !== null) {
+                $this->lastRead++;
                 $this->wrapper->onData($this, $this->inboundBuffer);
                 $this->inboundBuffer = "";
             }
