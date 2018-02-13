@@ -20,11 +20,11 @@ class HttpRequest {
     }
 
     public function getCookie($name) {
-        return isset($this->cookies[$name]) ?? NULL;
+        return $this->cookies[$name] ?? NULL;
     }
 
     public function getHeader($name) {
-        return isset($this->headers[$name]) ?? NULL;
+        return $this->headers[strtolower($name)] ?? NULL;
     }
 
     public function getHttpVersion() { return $this->httpVersion; }
