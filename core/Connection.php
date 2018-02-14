@@ -30,7 +30,7 @@ class Connection {
         $this->wrapper = $server->getWrapper();
         $this->state = ConnectionState::OPENED;
         $this->inboundBuffer = "";
-        $this->outboundBuffer = "";
+        $this->outboundBuffer = array();
         $this->lastRead = 0;
         $this->lastWrite = 0;
 
@@ -70,25 +70,37 @@ class Connection {
 
     public function send($data) {
         if ($this->state == ConnectionState::CLOSED) return;
-        $this->outboundBuffer .= $data;
+
+        if ($data instanceof DataStream) {
+            $this->outboundBuffer[] = $data;
+        } else {
+            $buf = new InMemoryStream($data, Connection::WRITE_LENGTH);
+            $this->outboundBuffer[] = $buf;
+        }
     }
 
     public function flush() {
         if ($this->state == ConnectionState::CLOSED) return;
 
-        if (strlen($this->outboundBuffer) > 0) {
+        $buf = reset($this->outboundBuffer);
+
+        if ($buf && !$buf->eof()) {
             $this->lastWrite = 0;
-            $written = @fwrite($this->sock, $this->outboundBuffer, Connection::WRITE_LENGTH);
+            $written = @fwrite($this->sock, $buf->getChunk(), Connection::WRITE_LENGTH);
             if ($written === false) {
                 throw new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
             } else if ($written > 0) {
-                $this->outboundBuffer = substr($this->outboundBuffer, $written);
+                $buf->advanceBy($written);
+            }
+
+            if ($buf->eof()) {
+                array_shift($this->outboundBuffer);
             }
         } else {
             $this->lastWrite++;
         }
         
-        if ($this->state == ConnectionState::CLOSING && strlen($this->outboundBuffer) === 0) {
+        if ($this->state == ConnectionState::CLOSING && count($this->outboundBuffer) === 0) {
             fclose($this->sock);
             $this->state = ConnectionState::CLOSED;
             $this->server->onDisconnect($this);
