@@ -27,11 +27,15 @@ class Promise {
         return $this->state;
     }
 
-    public function then($success, $fail) {
+    public function then($success, $fail = NULL) {
         if ($this->state == PromiseState::FULFILLED) {
             $this->resolve($this->resolveData);
         } else {
             $this->successHandlers[] = $success;
+        }
+
+        if ($fail !== NULL) {
+            return $this->catch($fail);
         }
 
         return $this;
@@ -52,7 +56,7 @@ class Promise {
         return $this;
     }
 
-    public function resolve($data) {
+    public function resolve($data = NULL) {
         $this->state = PromiseState::FULFILLED;
         $this->resolveData = $data;
 

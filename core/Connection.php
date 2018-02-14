@@ -25,7 +25,7 @@ class Connection {
 
     public function __construct($sock, $server) {
         $this->sock = $sock;
-        $this->id = ++self::$ai_count;//TODO: make sure this does not overlap with other connection ids
+        $this->id = (int)$sock;
         $this->server = $server;
         $this->wrapper = $server->getWrapper();
         $this->state = ConnectionState::OPENED;
@@ -71,12 +71,18 @@ class Connection {
     public function send($data) {
         if ($this->state == ConnectionState::CLOSED) return;
 
+        $promise = new Promise();
+
         if ($data instanceof DataStream) {
+            $data->setPromise($promise);
             $this->outboundBuffer[] = $data;
         } else {
             $buf = new InMemoryStream($data, Connection::WRITE_LENGTH);
+            $buf->setPromise($promise);
             $this->outboundBuffer[] = $buf;
         }
+
+        return $promise;
     }
 
     public function flush() {
@@ -88,13 +94,16 @@ class Connection {
             $this->lastWrite = 0;
             $written = @fwrite($this->sock, $buf->getChunk(), Connection::WRITE_LENGTH);
             if ($written === false) {
-                throw new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
+                $exception = new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
+                $buf->getPromise()->reject($exception);
+                throw $exception;
             } else if ($written > 0) {
                 $buf->advanceBy($written);
             }
 
             if ($buf->eof()) {
                 array_shift($this->outboundBuffer);
+                $buf->getPromise()->resolve();
             }
         } else {
             $this->lastWrite++;

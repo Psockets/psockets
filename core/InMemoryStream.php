@@ -1,6 +1,6 @@
 <?php
 
-class InMemoryStream implements DataStream {
+class InMemoryStream extends DataStream {
     private $chunkSize;
     private $data;
 

@@ -75,6 +75,7 @@ class Http extends Wrapper {
 
                 if (!in_array($method, $this->allowed_methods)) {
                     $con->send($this->getHardcodedError501($httpVersion));
+                    $con->close();
                     return;
                 }
 
