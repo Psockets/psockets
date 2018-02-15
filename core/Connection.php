@@ -77,7 +77,7 @@ class Connection {
             $data->setPromise($promise);
             $this->outboundBuffer[] = $data;
         } else {
-            $buf = new InMemoryStream($data, Connection::WRITE_LENGTH);
+            $buf = new InMemoryStream($data);
             $buf->setPromise($promise);
             $this->outboundBuffer[] = $buf;
         }
@@ -92,7 +92,9 @@ class Connection {
 
         if ($buf && !$buf->eof()) {
             $this->lastWrite = 0;
-            $written = @fwrite($this->sock, $buf->getChunk(), Connection::WRITE_LENGTH);
+            $chunk = $buf->getChunk(Connection::WRITE_LENGTH);
+            $written = @fwrite($this->sock, $chunk, Connection::WRITE_LENGTH);
+            //$written = @fwrite($this->sock, $buf->getChunk(Connection::WRITE_LENGTH), Connection::WRITE_LENGTH);
             if ($written === false) {
                 $exception = new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
                 $buf->getPromise()->reject($exception);

@@ -11,7 +11,7 @@ abstract class DataStream implements DataStreamInterface {
         return $this->promise;
     }
 
-    abstract public function getChunk();
+    abstract public function getChunk($chunkSize);
     abstract public function advanceBy($bytes);
     abstract public function eof();
 }

@@ -6,7 +6,7 @@ class HttpStatusMessages {
     const INTERNAL_ERROR = "Internal Server Error";
 }
 
-class HttpResponse {
+class HttpResponse extends DataStream {
     private $httpVersion;
     private $body;
     private $request;
@@ -14,18 +14,58 @@ class HttpResponse {
     private $statusCode;
     private $statusMessage;
     private $isKeepAlive;
+    private $hasContentLength;
+    private $data;
+    private $isResponseGenerated;
 
     public function __construct($request, $body) {
         $this->request = $request;
-        $this->body = $body;
         $this->headers = array();
         $this->httpVersion = $request->getHttpVersion();;
         $this->isKeepAlive = false;
         $this->statusCode = 200;
         $this->statusMessage;
+        $this->data = false;
+        $this->isResponseGenerated = false;
 
         $this->setHeader("Server", "psockets");
-        $this->setHeader("Content-Length", strlen($body));
+
+        $this->body = $body;
+
+        if (is_string($body) || is_numeric($body)) {
+            $this->setHeader("Content-Length", strlen($body));
+            $this->hasContentLength = true;
+        } else {
+            $this->hasContentLength = false;
+        }
+    }
+
+    //DataStream implementation
+    public function getChunk($chunkSize) {
+        if ($this->hasContentLength) {
+            if (!$this->isResponseGenerated) {
+                $this->data = $this->generateResponse();
+            }
+
+            $chunk = substr($this->data, 0, $chunkSize);
+            return $chunk;
+        }
+
+        return "";
+    }
+
+    public function advanceBy($bytes) {
+        $this->data = substr($this->data, $bytes);
+    }
+
+    public function eof() {
+        return $this->isResponseGenerated && !$this->data;
+    }
+    //End DataStream implementation
+
+    public function setContentLength($len) {
+        $this->setHeader("Content-Length", $len);
+        $this->hasContentLength = true;
     }
 
     public function setKeepAlive($state) {
@@ -48,7 +88,9 @@ class HttpResponse {
         }
     }
 
-    public function __toString() {
+    public function generateResponse() {
+        $this->isResponseGenerated = true;
+
         if ($this->isKeepAlive) {
             $this->addKeepAliveHeaders();
         }

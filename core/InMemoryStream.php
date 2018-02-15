@@ -1,16 +1,14 @@
 <?php
 
 class InMemoryStream extends DataStream {
-    private $chunkSize;
     private $data;
 
-    public function __construct($data, $chunkSize = 8192) {
-        $this->chunkSize = $chunkSize;
+    public function __construct($data) {
         $this->data = $data;
     }
 
-    public function getChunk() {
-        $chunk = substr($this->data, 0, $this->chunkSize);
+    public function getChunk($chunkSize) {
+        $chunk = substr($this->data, 0, $chunkSize);
         return $chunk;
     }
 
