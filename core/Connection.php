@@ -74,6 +74,10 @@ class Connection {
         $promise = new Promise();
 
         if ($data instanceof DataStream) {
+            if ($data instanceof HttpResponse) {
+                $data->generateResponse();
+            }
+
             $data->setPromise($promise);
             $this->outboundBuffer[] = $data;
         } else {

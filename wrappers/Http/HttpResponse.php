@@ -16,7 +16,6 @@ class HttpResponse extends DataStream {
     private $isKeepAlive;
     private $hasContentLength;
     private $data;
-    private $isResponseGenerated;
 
     public function __construct($request, $body) {
         $this->request = $request;
@@ -26,13 +25,12 @@ class HttpResponse extends DataStream {
         $this->statusCode = 200;
         $this->statusMessage;
         $this->data = false;
-        $this->isResponseGenerated = false;
 
         $this->setHeader("Server", "psockets");
 
         $this->body = $body;
 
-        if (is_string($body) || is_numeric($body)) {
+        if (!is_resource($body)) {
             $this->setHeader("Content-Length", strlen($body));
             $this->hasContentLength = true;
         } else {
@@ -43,10 +41,6 @@ class HttpResponse extends DataStream {
     //DataStream implementation
     public function getChunk($chunkSize) {
         if ($this->hasContentLength) {
-            if (!$this->isResponseGenerated) {
-                $this->data = $this->generateResponse();
-            }
-
             $chunk = substr($this->data, 0, $chunkSize);
             return $chunk;
         }
@@ -59,7 +53,7 @@ class HttpResponse extends DataStream {
     }
 
     public function eof() {
-        return $this->isResponseGenerated && !$this->data;
+        return !$this->data;
     }
     //End DataStream implementation
 
@@ -89,15 +83,13 @@ class HttpResponse extends DataStream {
     }
 
     public function generateResponse() {
-        $this->isResponseGenerated = true;
-
         if ($this->isKeepAlive) {
             $this->addKeepAliveHeaders();
         }
 
         $statusLine = $this->getStatusLine();
 
-        return $statusLine . "\r\n" . implode("\r\n", $this->headers) . "\r\n\r\n" . $this->body;
+        $this->data = $statusLine . "\r\n" . implode("\r\n", $this->headers) . "\r\n\r\n" . $this->body;
     }
 
     private function addKeepAliveHeaders() {
