@@ -74,10 +74,6 @@ class Connection {
         $promise = new Promise();
 
         if ($data instanceof DataStream) {
-            if ($data instanceof HttpResponse) {
-                $data->generateResponse();
-            }
-
             $data->setPromise($promise);
             $this->outboundBuffer[] = $data;
         } else {
@@ -94,12 +90,13 @@ class Connection {
 
         $buf = reset($this->outboundBuffer);
 
-        if ($buf && !$buf->eof()) {
+        if ($buf) {
             $this->lastWrite = 0;
-            $chunk = $buf->getChunk(Connection::WRITE_LENGTH);
-            $written = @fwrite($this->sock, $chunk, Connection::WRITE_LENGTH);
-            //$written = @fwrite($this->sock, $buf->getChunk(Connection::WRITE_LENGTH), Connection::WRITE_LENGTH);
+            //$chunk = $buf->getChunk(Connection::WRITE_LENGTH);
+            //$written = @fwrite($this->sock, $chunk, Connection::WRITE_LENGTH);
+            $written = @fwrite($this->sock, $buf->getChunk(Connection::WRITE_LENGTH), Connection::WRITE_LENGTH);
             if ($written === false) {
+                array_shift($this->outboundBuffer);
                 $exception = new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
                 $buf->getPromise()->reject($exception);
                 throw $exception;

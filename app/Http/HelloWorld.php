@@ -3,10 +3,12 @@
 class HelloWorld extends HttpComponent {
     public static $PATH = '/';
 
-    public function onRequest($con, $request) {
+    public function onRequest($con, $request, $response) {
         if ($request->getPath() == '/') {
-            $con->send(new HttpResponse($request, "Hello World!"));
-            $con->close();
+            $response->write("Hello World!")->then(function ($data) use ($con) {
+                $con->close();
+            });
+
             return true;
         }
 

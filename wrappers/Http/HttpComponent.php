@@ -12,5 +12,5 @@ abstract class HttpComponent {
     //public function onDisconnect($con) {}
     //public function onStop() {}
 
-    abstract public function onRequest($con, $request);
+    abstract public function onRequest($con, $request, $response);
 }

@@ -6,67 +6,54 @@ class HttpStatusMessages {
     const INTERNAL_ERROR = "Internal Server Error";
 }
 
-class HttpResponse extends DataStream {
+class HttpResponse {
+    private $con;
     private $httpVersion;
-    private $body;
     private $request;
     private $headers;
     private $statusCode;
     private $statusMessage;
     private $isKeepAlive;
-    private $hasContentLength;
-    private $data;
 
-    public function __construct($request, $body) {
+    public function __construct($con, $request) {
+        $this->con = $con;
         $this->request = $request;
         $this->headers = array();
         $this->httpVersion = $request->getHttpVersion();;
         $this->isKeepAlive = false;
         $this->statusCode = 200;
         $this->statusMessage;
-        $this->data = false;
 
         $this->setHeader("Server", "psockets");
+        if (strtolower($request->getHeader("connection")) == "keep-alive") {
+            $this->addKeepAliveHeaders();
+            $this->isKeepAlive = true;
+        }
+    }
 
-        $this->body = $body;
-
+    public function write($body) {
         if (!is_resource($body)) {
             $this->setHeader("Content-Length", strlen($body));
-            $this->hasContentLength = true;
+        }
+
+        $this->con->send($this->getHeaderString());
+
+        if ($this->isKeepAlive) {
+            return $this->con->send($body);
         } else {
-            $this->hasContentLength = false;
-        }
-    }
-
-    //DataStream implementation
-    public function getChunk($chunkSize) {
-        if ($this->hasContentLength) {
-            $chunk = substr($this->data, 0, $chunkSize);
-            return $chunk;
+            $con = $this->con;
+            return $this->con->send($body)->finally(function () use ($con) {
+                $con->close();
+            });
         }
 
-        return "";
     }
-
-    public function advanceBy($bytes) {
-        $this->data = substr($this->data, $bytes);
-    }
-
-    public function eof() {
-        return !$this->data;
-    }
-    //End DataStream implementation
 
     public function setContentLength($len) {
         $this->setHeader("Content-Length", $len);
-        $this->hasContentLength = true;
     }
 
-    public function setKeepAlive($state) {
-        $this->isKeepAlive = $state;
-    }
-
-    public function getKeepAlive() {
+    public function isKeepAlive() {
         return $this->isKeepAlive;
     }
 
@@ -82,14 +69,8 @@ class HttpResponse extends DataStream {
         }
     }
 
-    public function generateResponse() {
-        if ($this->isKeepAlive) {
-            $this->addKeepAliveHeaders();
-        }
-
-        $statusLine = $this->getStatusLine();
-
-        $this->data = $statusLine . "\r\n" . implode("\r\n", $this->headers) . "\r\n\r\n" . $this->body;
+    public function getHeaderString() {
+        return $this->getStatusLine() . "\r\n" . implode("\r\n", $this->headers) . "\r\n\r\n";
     }
 
     private function addKeepAliveHeaders() {

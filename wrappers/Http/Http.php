@@ -128,7 +128,8 @@ class Http extends Wrapper {
 
                     if ($pathMatch) {
                         $req = new HttpRequest($httpVersion, $method, $headers, $path, $query, $cookies);
-                        if ($this->components[$host][$pathMatch]->onRequest($con, $req)) {
+                        $res = new HttpResponse($con, $req);
+                        if ($this->components[$host][$pathMatch]->onRequest($con, $req, $res)) {
                             return;
                         }
                     }

@@ -52,7 +52,12 @@ class Promise {
     }
 
     public function finally($finally) {
-        $this->finallyHandlers[] = $finally;
+        if ($this->state != PromiseState::PENDING) {
+            $finally();
+        } else {
+            $this->finallyHandlers[] = $finally;
+        }
+
         return $this;
     }
 
