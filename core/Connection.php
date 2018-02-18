@@ -8,6 +8,8 @@ class ConnectionState {
 class Connection {
     const READ_LENGTH = 8192;
     const WRITE_LENGTH = 8192;
+    const BUF_LENGTH = 8192;
+    const ACTIVITY_TRESHOLD = 3;
 
     private $server;
     private $wrapper;
@@ -41,7 +43,7 @@ class Connection {
     }
 
     public function hasWork() {
-        return $this->lastRead < 3 || $this->lastWrite < 3;
+        return $this->lastRead < Connection::ACTIVITY_TRESHOLD || $this->lastWrite < Connection::ACTIVITY_TRESHOLD;
     }
 
     public function enableSSL() {
@@ -92,9 +94,7 @@ class Connection {
 
         if ($buf) {
             $this->lastWrite = 0;
-            //$chunk = $buf->getChunk(Connection::WRITE_LENGTH);
-            //$written = @fwrite($this->sock, $chunk, Connection::WRITE_LENGTH);
-            $written = @fwrite($this->sock, $buf->getChunk(Connection::WRITE_LENGTH), Connection::WRITE_LENGTH);
+            $written = @fwrite($this->sock, $buf->getChunk(Connection::WRITE_LENGTH));
             if ($written === false) {
                 array_shift($this->outboundBuffer);
                 $exception = new SocketWriteException("Failed writing to socket. Connection ID: " . $this->id);
@@ -134,9 +134,7 @@ class Connection {
 
         if (feof($this->sock)) {
             $this->close();
-            if ($this->wrapper !== null) {
-                $this->wrapper->onDisconnect($this);
-            }
+            $this->wrapper->onDisconnect($this);
         }
 
         if (is_resource($this->sock)) {
@@ -150,10 +148,18 @@ class Connection {
                 if (!empty($data)) {
                     $this->inboundBuffer .= $data;
                 }
-            } else if ($this->inboundBuffer != "" && $this->wrapper !== null) {
+            } else {
                 $this->lastRead++;
-                $this->wrapper->onData($this, $this->inboundBuffer);
-                $this->inboundBuffer = "";
+            }
+            
+            if ($this->inboundBuffer != "") {
+                if (strlen($this->inboundBuffer >= Connection::BUF_LENGTH)) {
+                    $this->wrapper->onData($this, substr($this->inboundBuffer, 0, Connection::BUF_LENGTH));
+                    $this->inboundBuffer = substr($this->inboundBuffer, Connection::BUF_LENGTH);
+                } else if ($this->lastRead == Connection::ACTIVITY_TRESHOLD) {
+                    $this->wrapper->onData($this, $this->inboundBuffer);
+                    $this->inboundBuffer = "";
+                }
             }
         }
     }
