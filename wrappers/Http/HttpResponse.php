@@ -19,7 +19,7 @@ class HttpResponse {
         $this->con = $con;
         $this->request = $request;
         $this->headers = array();
-        $this->httpVersion = $request->getHttpVersion();;
+        $this->httpVersion = $request->getHttpVersion();
         $this->isKeepAlive = false;
         $this->statusCode = 200;
         $this->statusMessage;
