@@ -5,11 +5,13 @@ class Http extends Wrapper {
     private $components;
     private $paths;
     private $allowed_methods = array('GET');
+    private $keepAliveResponses;
 
     public function init() {
         $this->buffers = array();
         $this->components = array();
         $this->paths = array();
+        $this->keepAliveResponses = array();
 
         $hosts = !empty($this->config['hosts']) ? $this->config['hosts'] : array();
 
@@ -54,7 +56,9 @@ class Http extends Wrapper {
 
     public function onDisconnect($con) {
         $this->buffers[$con->id] = null;// Free up the memory, cause a simple unset will not and we will have a memory leak
+        $this->keepAliveResponses[$con->id] = null;// Free up the memory, cause a simple unset will not and we will have a memory leak
         unset($this->buffers[$con->id]);
+        unset($this->keepAliveResponses[$con->id]);
     }
 
     public function onData($con, $data) {
@@ -128,7 +132,15 @@ class Http extends Wrapper {
 
                     if ($pathMatch) {
                         $req = new HttpRequest($httpVersion, $method, $headers, $path, $query, $cookies);
-                        $res = new HttpResponse($con, $req);
+
+                        if (!isset($this->keepAliveResponses[$con->id])) {
+                            $res = new HttpResponse($con, $req);
+                            $this->keepAliveResponses[$con->id] = $res;
+                        } else {
+                            $res = $this->keepAliveResponses[$con->id];
+                            $res->setup($req);
+                        }
+
                         if ($this->components[$host][$pathMatch]->onRequest($con, $req, $res)) {
                             return;
                         }

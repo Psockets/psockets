@@ -14,9 +14,15 @@ class HttpResponse {
     private $statusCode;
     private $statusMessage;
     private $isKeepAlive;
+    private $keepAliveCounter;
 
     public function __construct($con, $request) {
         $this->con = $con;
+        $this->keepAliveCounter = 1000;
+        $this->setup($request);
+    }
+
+    public function setup($request) {
         $this->request = $request;
         $this->headers = array();
         $this->httpVersion = $request->getHttpVersion();
@@ -38,7 +44,7 @@ class HttpResponse {
 
         $this->con->send($this->getHeaderString());
 
-        if ($this->isKeepAlive) {
+        if ($this->isKeepAlive && $this->keepAliveCounter > 0) {
             return $this->con->send($body);
         } else {
             $con = $this->con;
@@ -75,7 +81,7 @@ class HttpResponse {
 
     private function addKeepAliveHeaders() {
         $this->setHeader("Connection", "Keep-Alive");
-        $this->setHeader("Keep-Alive", "timeout=15, max=1000");
+        $this->setHeader("Keep-Alive", "timeout=15, max=" . $this->keepAliveCounter--);
     }
 
     private function getStatusLine() {
