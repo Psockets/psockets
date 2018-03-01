@@ -40,17 +40,15 @@ class HttpResponse {
     public function write($body) {
         if (!is_resource($body)) {
             $this->setHeader("Content-Length", strlen($body));
+            $body = $this->getHeaderString() . $body;
+        } else {
+            $this->con->send($this->getHeaderString());
         }
-
-        $this->con->send($this->getHeaderString());
 
         if ($this->isKeepAlive && $this->keepAliveCounter > 0) {
             return $this->con->send($body);
         } else {
-            $con = $this->con;
-            return $this->con->send($body)->finally(function () use ($con) {
-                $con->close();
-            });
+            return $this->con->send($body)->finally(array($this->con, 'close'));
         }
 
     }

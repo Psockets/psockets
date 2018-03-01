@@ -2,6 +2,7 @@
 
 abstract class DataStream implements DataStreamInterface {
     protected $promise;
+    protected $nextStream = NULL;
 
     public function setPromise($promise) {
         $this->promise = $promise;
@@ -9,6 +10,14 @@ abstract class DataStream implements DataStreamInterface {
 
     public function getPromise() {
         return $this->promise;
+    }
+
+    public function setNext($stream) {
+        $this->nextStream = $stream;
+    }
+
+    public function getNext() {
+        return $this->nextStream;
     }
 
     abstract public function getChunk($chunkSize);

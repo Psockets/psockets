@@ -159,34 +159,11 @@ class Http extends Wrapper {
 
     public function onStop() {}
 
-    private function getResponse($version, $resp) {
-        $contentLength = strlen($resp);
-        return "HTTP/$version 200 OK\r\nServer: psockets\r\nContent-Length: $contentLength\r\n\r\n$resp";
-    }
-
-    private function getHardcodedReponse200($version) {
-        return "HTTP/$version 200 OK\r\nServer: psockets\r\nContent-Length: 2\r\n\r\nHi";
-    }
-
-    private function getHardcodedError500($version) {
-        return "HTTP/$version 500 Internal Server Error\r\nServer: psockets\r\nContent-Length: 5\r\n\r\nOops!";
-    }
-
     private function getHardcodedError404($version) {
         return "HTTP/$version 404 Not Found\r\nServer: psockets\r\nContent-Length: 19\r\n\r\n<h1>Not Found!</h1>";
     }
 
     private function getHardcodedError501($version) {
         return "HTTP/$version 501 Not Implemented\r\nServer: psockets\r\nContent-Length: 5\r\n\r\nOops!";
-    }
-
-    private function processRequest($httpVersion, $method, $path, $query, $headers) {
-        if ($query) {
-            //$resp = "Result is: " . ((int)$query['a'] + (int)$query['b']);
-            $resp = (int)$query['a'] + (int)$query['b'];
-            return $this->getResponse($httpVersion, $resp);
-        }
-
-        return $this->getHardcodedReponse200($httpVersion);
     }
 }

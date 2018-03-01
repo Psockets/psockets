@@ -116,9 +116,7 @@ class Server {
 
         $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
         while ($con->isValid() && $counter++ < 3000) {
-            if ($this->wrapper !== null) {
-                $this->wrapper->onConnect($con);
-            }
+            $this->wrapper->onConnect($con);
 
             if ($this->isSSL()) {
                 if (!$con->enableSSL()) {
@@ -137,20 +135,17 @@ class Server {
             $con->listen();
         }
 
-        foreach ($this->connections as $con) {
-            try {
-                $con->flush();
-            } catch (SocketWriteException $e) {
-                //TODO: Do some sort of logging
-            }
-        }
-
         $hasWork = false;
 
         foreach ($this->connections as $con) {
-            if ($con->hasWork()) {
-                $hasWork = true;
-                break;
+            try {
+                $con->flush();
+
+                if ($con->hasWork()) {
+                    $hasWork = true;
+                }
+            } catch (SocketWriteException $e) {
+                //TODO: Do some sort of logging
             }
         }
 
