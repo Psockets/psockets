@@ -4,6 +4,8 @@ class HttpStatusMessages {
     const OK = "OK";
     const NOT_FOUND = "Not Found";
     const INTERNAL_ERROR = "Internal Server Error";
+    const MOVED_PERMANENTLY = "Moved Permanently";
+    const FOUND = "Found";
 }
 
 class HttpResponse {
@@ -89,6 +91,10 @@ class HttpResponse {
             return $statusLine . $this->statusMessage;
         } else {
             switch ($this->statusCode) {
+            case 301:
+                return $statusLine . HttpStatusMessages::MOVED_PERMANENTLY;
+            case 302:
+                return $statusLine . HttpStatusMessages::FOUND;
             case 404:
                 return $statusLine . HttpStatusMessages::NOT_FOUND;
             case 500:
