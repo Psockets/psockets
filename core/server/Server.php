@@ -100,10 +100,8 @@ class Server {
 
         $this->sock = stream_socket_server('tcp://' . $this->ip . ':' . $this->port, $this->errorcode, $this->errormsg, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $context);
         if ($this->sock === false) {
-            stream_set_blocking($this->sock, 1);
-            stream_socket_enable_crypto($this->sock, false);
             $this->saveSocketError();
-            return $this;
+            exit(1);
         }
 
         $this->log->debug("Server is listening on $this->ip:$this->port");
@@ -120,14 +118,11 @@ class Server {
 
         $con = new Connection(@stream_socket_accept($this->sock, 0), $this);
         while ($con->isValid() && $counter++ < 3000) {
-            $this->wrapper->onConnect($con);
-
             if ($this->isSSL()) {
-                if (!$con->enableSSL()) {
-                    $this->log->error('Unable to create secure socket');
-                    return 0;
-                }
+                $con->enableSSL();
             }
+
+            $this->wrapper->onConnect($con);
 
             $this->connections[$con->id] = $con;
             //$this->log->debug(date('[Y-m-d H:i:s]') . " Client connected from $con->ip");
