@@ -135,7 +135,10 @@ class Http extends Wrapper {
 
                         if (!isset($this->keepAliveResponses[$con->id])) {
                             $res = new HttpResponse($con, $req);
-                            $this->keepAliveResponses[$con->id] = $res;
+
+                            if ($res->isKeepAlive()) {
+                                $this->keepAliveResponses[$con->id] = $res;
+                            }
                         } else {
                             $res = $this->keepAliveResponses[$con->id];
                             $res->setup($req);
