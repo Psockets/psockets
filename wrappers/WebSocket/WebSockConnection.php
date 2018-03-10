@@ -45,6 +45,10 @@ class WebSockConnection {
         return $this->con;
     }
 
+    public function isSecure() {
+        return $this->con->isSecure();
+    }
+
     public function isAuthorized() {
         return $this->is_authorized;
     }

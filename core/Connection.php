@@ -20,7 +20,8 @@ class Connection {
     private $lastOutboundBuffer;
     private $lastRead;
     private $lastWrite;
-    private $ssl_stack;
+    private $sslStack;
+    private $isSecure;
 
     public static $ai_count = 0;
     public $id;
@@ -39,7 +40,8 @@ class Connection {
         $this->lastOutboundBuffer = NULL;
         $this->lastRead = 0;
         $this->lastWrite = 0;
-        $this->ssl_stack = array(STREAM_CRYPTO_METHOD_TLS_SERVER, STREAM_CRYPTO_METHOD_SSLv3_SERVER, STREAM_CRYPTO_METHOD_SSLv23_SERVER, STREAM_CRYPTO_METHOD_SSLv2_SERVER);
+        $this->sslStack = array(STREAM_CRYPTO_METHOD_TLS_SERVER, STREAM_CRYPTO_METHOD_SSLv3_SERVER, STREAM_CRYPTO_METHOD_SSLv23_SERVER, STREAM_CRYPTO_METHOD_SSLv2_SERVER);
+        $this->isSecure = false;
 
         if ($this->isValid()) {
             stream_set_blocking($sock, 0);
@@ -58,19 +60,24 @@ class Connection {
     public function enableSSL() {
         $this->state = ConnectionState::TLS_HANDSHAKE;
 
-        $result = stream_socket_enable_crypto($this->sock, true, reset($this->ssl_stack));
+        $result = stream_socket_enable_crypto($this->sock, true, reset($this->sslStack));
 
         if ($result === true) {
             $this->state = ConnectionState::OPENED;
+            $this->isSecure = true;
             return true;
         } else if ($result === false) {
-            array_shift($this->ssl_stack);
-            if (empty($this->ssl_stack)) {
+            array_shift($this->sslStack);
+            if (empty($this->sslStack)) {
                 $this->server->log->error('Unable to create secure socket');
                 $this->close(true);
                 return false;
             }
         }
+    }
+
+    public function isSecure() {
+        return $this->isSecure;
     }
 
     public function isValid() {
