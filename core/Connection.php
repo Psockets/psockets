@@ -44,6 +44,10 @@ class Connection {
         }
     }
 
+    public function __destruct() {
+        $this->close();
+    }
+
     public function hasWork() {
         return $this->lastRead < Connection::ACTIVITY_TRESHOLD || $this->lastWrite < Connection::ACTIVITY_TRESHOLD;
     }

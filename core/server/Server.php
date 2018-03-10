@@ -51,6 +51,10 @@ class Server {
         }
     }
 
+    public function __destruct() {
+        $this->stop();
+    }
+
     public function loadWrapper($wrapper = 'RawTcp', $wrapper_config = array()) {
         $this->wrapper = new $wrapper($wrapper_config, $this);
         $this->wrapper->init();

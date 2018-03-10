@@ -15,6 +15,11 @@ class ServerManager {
 
     public function run() {
         stream_set_blocking(STDIN, 0);
+        declare(ticks=1);
+
+        pcntl_signal(SIGTERM, array($this, 'sigHandler'));
+        pcntl_signal(SIGABRT, array($this, 'sigHandler'));
+        pcntl_signal(SIGINT, array($this, 'sigHandler'));
 
         for(;;) {
             if (strpos('WIN', PHP_OS) === false){
@@ -35,6 +40,18 @@ class ServerManager {
             if (!$hasWork) {
                 usleep(500);
             }
+        }
+    }
+
+    public function sigHandler($signo, $siginfo) {
+        switch($signo) {
+        case SIGTERM:
+        case SIGABRT:
+        case SIGINT:
+            foreach ($this->servers as $server) {
+                $server->stop();
+            }
+            exit;
         }
     }
 
