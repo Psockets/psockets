@@ -29,7 +29,7 @@ class Promise {
 
     public function then($success, $fail = NULL) {
         if ($this->state == PromiseState::FULFILLED) {
-            $this->resolve($this->resolveData);
+            call_user_func($success, $this->resolveData);
         } else {
             $this->successHandlers[] = $success;
         }
@@ -43,7 +43,7 @@ class Promise {
 
     public function catch($fail) {
         if ($this->state == PromiseState::REJECTED) {
-            $this->reject($this->rejectReason);
+            call_user_func($fail, $this->rejectReason);
         } else {
             $this->failHandlers[] = $fail;
         }
@@ -53,7 +53,7 @@ class Promise {
 
     public function finally($finally) {
         if ($this->state != PromiseState::PENDING) {
-            $finally();
+            call_user_func($finally);
         } else {
             $this->finallyHandlers[] = $finally;
         }
@@ -67,11 +67,11 @@ class Promise {
 
         try {
             foreach ($this->successHandlers as $success) {
-                $success($data);
+                call_user_func($success, $data);
             }
 
             foreach ($this->finallyHandlers as $finally) {
-                $finally();
+                call_user_func($finally);
             }
         } catch (Exception $e) {
             $this->reject();
@@ -84,12 +84,12 @@ class Promise {
 
         try {
             foreach ($this->failHandlers as $fail) {
-                $fail($exception);
+                call_user_func($fail, $exception);
             }
         } catch (Exception $e) {}
 
         foreach ($this->finallyHandlers as $finally) {
-            $finally();
+            call_user_func($finally);
         }
     }
 }
