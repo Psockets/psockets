@@ -96,7 +96,7 @@ class RecvFrame {
         $this->payload_len = $payloadLenOverride;
         $this->dataFirstByteIndex = $i;
         $x = 0;
-        while(isset($bytes['byte'.$i])) {
+        while($x < $this->payload_len && isset($bytes['byte'.$i])) {
             if ($this->mask) {
                 $this->data_buffer[] = ($bytes['byte'.$i] ^ $this->mask_bytes[$x%4]);
             } else {
@@ -113,5 +113,9 @@ class RecvFrame {
 
     public function isValid() {
         return $this->is_valid_frame;
+    }
+
+    public function getByteLength() {
+        return ($this->dataFirstByteIndex - 1) + $this->payload_len;// the bytes array is not 0 based and starts from 1, hence the -1 expression
     }
 }

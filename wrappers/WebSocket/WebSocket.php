@@ -63,7 +63,7 @@ class WebSocket extends Wrapper {
                     $this->buffers[$con->id] = substr($buffer, $headers_end + 4);
                 }
             } else {
-                $this->processData($websock_con, $buffer);
+                $this->buffers[$con->id] = $this->processData($websock_con, $buffer);
             }
         }
     }
@@ -201,36 +201,41 @@ class WebSocket extends Wrapper {
     }
 
     private function processData($con, $data) {
-        if ($con->wasLastFrameFinal() && $con->isFrameComplete()) {
-            if (!empty($con->dataBuffer)) {
-                //$this->log->debug("Frame is complete");
-                $this->dispatchConnectionData($con);
-            }
-            $this->processFrame($con, $data);
-        } else {
+        while ($data) {
             $bytesToCompleteFrame = $con->frameDataLength - $con->recvFrameDataLength();
-            if ($bytesToCompleteFrame >= 1024) {
-                $con->dataBuffer .= RecvFrame::unmaskData($con->frameMask, $data);
-                if ($con->wasLastFrameFinal() && $con->isFrameComplete()) {
-                    $this->dispatchConnectionData($con);
+
+            if ($bytesToCompleteFrame > 0) {
+                if ($bytesToCompleteFrame >= strlen($data)) {
+                    $con->dataBuffer .= RecvFrame::unmaskData($con->frameMask, $data);
+                    if ($con->wasLastFrameFinal() && $con->isFrameComplete()) {
+                        $this->dispatchConnectionData($con);
+                    }
+                    return "";
+                } else {
+                    $con->dataBuffer .= RecvFrame::unmaskData($con->frameMask, substr($data, 0, $bytesToCompleteFrame));
+                    if ($con->wasLastFrameFinal()) {
+                        $this->dispatchConnectionData($con);
+                    }
+
+                    $data = substr($data, $bytesToCompleteFrame);
                 }
             } else {
-                $con->dataBuffer .= RecvFrame::unmaskData($con->frameMask, substr($data, 0, $bytesToCompleteFrame));
-                if ($con->wasLastFrameFinal()) {
-                    $this->dispatchConnectionData($con);
+                if (!$this->processFrame($con, $data)) {
+                    return $data;
                 }
-                $this->processFrame($con, substr($data, $bytesToCompleteFrame));
             }
         }
+
+        return "";
     }
 
-    private function processFrame($con, $data) {
+    private function processFrame($con, &$data) {
         $frame = new RecvFrame($data);
-        if (!$frame->isValid()) return;
+        if (!$frame->isValid()) return false;
 
         if ($frame->RSV1 || $frame->RSV2 || $frame->RSV3) {// Extensions are not supported yet, so if any of these is present we should close the connection.
             $con->close();
-            return;
+            return false;
         }
 
         if ($frame->opcode == 0) {
@@ -261,6 +266,12 @@ class WebSocket extends Wrapper {
             }
         }
 
+        if ($frame->getByteLength() >= strlen($data)) {
+            $data = "";
+        } else {
+            $data = substr($data, $frame->getByteLength());
+        }
+
         if ($frame->opcode == 0x8) { //disconnect code
             $this->log->debug('Client sent disconnect code');
             $con->close();
@@ -270,5 +281,7 @@ class WebSocket extends Wrapper {
                 $this->dispatchConnectionData($con);
             }
         }
+
+        return true;
     }
 }
