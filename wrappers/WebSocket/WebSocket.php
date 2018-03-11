@@ -57,8 +57,10 @@ class WebSocket extends Wrapper {
 
         if ($websock_con !== null) {
             if (!$websock_con->isAuthorized()) {
-                if (strpos($buffer, "\r\n\r\n")) {
-                    $this->authClient($websock_con, $buffer);
+                $headers_end = strpos($buffer, "\r\n\r\n");
+                if ($headers_end !== false) {
+                    $this->authClient($websock_con, substr($buffer, 0, $headers_end));
+                    $this->buffers[$con->id] = substr($buffer, $headers_end + 4);
                 }
             } else {
                 $this->processData($websock_con, $buffer);
@@ -226,7 +228,7 @@ class WebSocket extends Wrapper {
         $frame = new RecvFrame($data);
         if (!$frame->isValid()) return;
 
-        if ($frame->RSV1 || $frame->RSV2 || $frame->RSV3) {//We do not support extensions yet, so if any of these is present we should close the connection because the client (Google Chrome!) is misbehaving and using extensions regardless.
+        if ($frame->RSV1 || $frame->RSV2 || $frame->RSV3) {// Extensions are not supported yet, so if any of these is present we should close the connection.
             $con->close();
             return;
         }
