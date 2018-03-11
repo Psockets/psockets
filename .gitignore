@@ -4,3 +4,4 @@
 .hhconfig
 *.pem
 config_local.php
+app/
