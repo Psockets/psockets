@@ -28,7 +28,7 @@ class WebSockConnection {
                 $message->opcode = 0x2;
             }
             $msgFrame = $message->getFrame();
-            $this->con->send($msgFrame);
+            return $this->con->send($msgFrame);
         }
     }
 
