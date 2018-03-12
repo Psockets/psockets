@@ -13,11 +13,9 @@ foreach ($server_config as $port => $config) {
 
 
     if ($wrapper !== null) {
-        $wrapper_config = !empty($config[$wrapper]) ? $config[$wrapper] : null;
+        $wrapper_config = !empty($config[$wrapper]) ? $config[$wrapper] : array();
 
-        if ($wrapper_config !== null) {
-            $server_manager->startServer($port, $wrapper, $wrapper_config, $ssl);
-        }
+        $server_manager->startServer($port, $wrapper, $wrapper_config, $ssl);
     }
 }
 
