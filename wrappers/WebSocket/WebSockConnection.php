@@ -4,6 +4,7 @@ class WebSockConnection {
     private $is_authorized = false;
 
     public $id;
+    public $ip;
     public $frameDataLength = 0;
     public $multiFrameBuffer = '';
     public $frameMask = array();
@@ -17,6 +18,7 @@ class WebSockConnection {
     public function __construct($con) {
         $this->con = $con;
         $this->id = $con->id;
+        $this->ip = $con->ip;
     }
 
     public function sendRaw($data) {
