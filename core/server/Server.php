@@ -16,6 +16,7 @@ class Server {
     private $ssl_cert_file;
     private $ssl_privkey_file;
     private $ssl_passphrase;
+    private $timers;
 
     public $ip = '';
     public $port = 0;
@@ -27,6 +28,7 @@ class Server {
         $this->ip = $ip;
         $this->port = $port;
         $this->startTime = time();
+        $this->timers = array();
 
         $cert_file = !empty($ssl['cert_file']) ? $ssl['cert_file'] : '';
         $privkey_file = !empty($ssl['privkey_file']) ? $ssl['privkey_file'] : '';
@@ -111,8 +113,32 @@ class Server {
         return $this;
     }
 
+    public function setTimer($timer) {
+        $this->timers[$timer->id] = $timer;
+    }
+
+    public function removeTimer($timerId) {
+        if (isset($this->timers[$timerId])) {
+            unset($this->timers[$timerId]);
+        }
+    }
+
+    public function timerTick() {
+        foreach ($this->timers as $k => $timer) {
+            if ($timer->hasToExecute()) {
+                $timer->execute();
+
+                if ($timer->type == TimerType::TIMEOUT) {
+                    unset($this->timers[$k]);
+                }
+            }
+        }
+    }
+
     public function loop() {
         if ($this->state !== ServerState::RUNNING) return 0;
+
+        $this->timerTick();
 
         $counter = 0;
 

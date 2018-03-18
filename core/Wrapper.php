@@ -10,6 +10,26 @@ abstract class Wrapper {
         $this->log = $this->server->log;
     }
 
+    public function setTimeout($callback, $delay) { // Delay is in milliseconds
+        $timer = new Timer($callback, $delay, TimerType::TIMEOUT);
+        $this->server->setTimer($timer);
+        return $timer->id;
+    }
+
+    public function setInterval($callback, $delay) { // Delay is in milliseconds
+        $timer = new Timer($callback, $delay, TimerType::INTERVAL);
+        $this->server->setTimer($timer);
+        return $timer->id;
+    }
+
+    public function cancelTimeout($id) {
+        $this->server->removeTimer($id);
+    }
+
+    public function cancelInterval($id) {
+        $this->server->removeTimer($id);
+    }
+
     abstract public function init();
     abstract public function onConnect($con);
     abstract public function onDisconnect($con);

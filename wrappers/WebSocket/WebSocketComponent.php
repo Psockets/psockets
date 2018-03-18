@@ -2,9 +2,11 @@
 abstract class WebSocketComponent {
     public static $PROTOCOL = '';
     protected $server;
+    protected $wrapper;
 
-    public function __construct($server){
+    public function __construct($server, $wrapper){
         $this->server = $server;
+        $this->wrapper = $wrapper;
     }
 
     public function onLoad($ip, $port, $host) {}
