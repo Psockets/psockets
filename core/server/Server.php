@@ -90,6 +90,8 @@ class Server {
 
         $context = stream_context_create();
 
+        stream_context_set_option($context, 'socket', 'so_reuseport', true);
+
         if ($this->isSSL()) {
             stream_context_set_option($context, 'ssl', 'local_cert', $this->ssl_cert_file);
             stream_context_set_option($context, 'ssl', 'local_pk', $this->ssl_privkey_file);

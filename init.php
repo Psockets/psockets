@@ -7,6 +7,7 @@ define('DIR_CORE_SERVER', DIR_ROOT . 'core' . DS . 'server' . DS);
 define('DIR_WRAPPERS', DIR_ROOT . 'wrappers' . DS);
 define('DIR_LOG', DIR_ROOT . 'logs');
 define('DEBUG_MODE', TRUE);
+define('FORK_COUNT', 8);
 
 $error_level = E_ALL;
 
