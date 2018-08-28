@@ -13,12 +13,10 @@ function cpu_cores($cores = 1) {
   $OS = strtoupper(substr(PHP_OS, 0, 3));
   
   if ('WIN' == $OS) {
-    //TODO: test 'the wmic cpu get' on different Windowses (tested only on Win7 x64)
-    //NOTE: on Windows XP x64 the command is 'echo %NUMBER_OF_PROCESSORS%'
-    if (fgets($process = popen('wmic cpu get NumberOfLogicalProcessors', 'rb'))) {
-      $cores = intval(fgets($process));
-      pclose($process);
-    }
+    //NOTE: since Windows 2000/NT env. variable %NUMBER_OF_PROCESSORS% holds number of ALL cores
+    $cores = fgets(popen('echo %NUMBER_OF_PROCESSORS%', 'rb'));
+    $OS .= (php_uname("r") < 6) ? " XP " . php_uname("r") 
+                                : " Vista/7/8/10 " . php_uname("r");
   } else if ('LIN' == $OS) { //tested on Ubuntu x64 14.04, 16.04, 18.04 and Slack x64 14.1
     if (is_file('/proc/cpuinfo')) {
       preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
