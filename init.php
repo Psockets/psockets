@@ -9,7 +9,8 @@ define('DIR_LOG', DIR_ROOT . 'logs');
 define('DEBUG_MODE', TRUE);
 
 //limit the number of forked processes to the number of available cpu cores
-function cpu_cores($cores = 1) {
+function cpu_cores() {
+  $cores = 1;
   $OS = strtoupper(substr(PHP_OS, 0, 3));
   
   if ('WIN' == $OS) {
